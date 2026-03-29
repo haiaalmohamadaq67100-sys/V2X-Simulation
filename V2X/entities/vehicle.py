@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 import traci
+from network_stats import network_stats
 from .base import Entity
 from utils import sumo_to_geo, get_generation_delta_time
 from config import VEHICLE_DEFAULTS, STATION_TYPE_RULES
@@ -272,6 +273,8 @@ class Vehicle(Entity):
 
             # 4. Costruisci il payload JSON finale
             payload = message.build_payload(response_data)
+            # record response time for delay measurement
+            network_stats.record_response(manoeuvre_id)
 
             # 5. Pubblica su MQTT
             # Usiamo lo stesso topic MCM (o uno specifico se configurato diversamente)

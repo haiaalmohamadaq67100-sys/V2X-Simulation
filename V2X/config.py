@@ -131,11 +131,19 @@ LOGGING = {
 # -----------------------------------------------------------
 # Modalità disponibili: "BASELINE" (Solo SUMO), "V2X" (Con RSU e Python)
 #SIMULATION_MODE = "V2X"  # <--- CAMBIA QUESTO PER I TEST
-SIMULATION_MODE = "BASELINE"
+SIMULATION_MODE = "V2X"
 # Configurazione Output
 OUTPUT_DIR = "results" # Assicurati che questa cartella esista o creala
 ENABLE_STATS = True
-
+# -----------------------------------------------------------
+# Network Emulation Parameters (Application-Level)
+# -----------------------------------------------------------
+NETWORK_EMULATION = {
+    "enabled": True,
+    "fixed_delay_ms": 50,       # constant delay
+    "jitter_ms": 5,            # random variation ±
+    "packet_loss_prob": 0.3    # % packet loss
+}
 def get_sumo_output_args():
     """Genera gli argomenti per le statistiche in base alla modalità."""
     if not ENABLE_STATS:

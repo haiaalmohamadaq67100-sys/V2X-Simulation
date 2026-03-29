@@ -6,6 +6,11 @@ import json
 import logging
 from typing import Optional
 import paho.mqtt.client as mqtt
+import time
+import random
+import csv
+import os
+from config import NETWORK_EMULATION
 
 from config import MQTT_PORT, MQTT_KEEPALIVE, STATIONS, MQTT_TOPICS
 
@@ -22,7 +27,30 @@ class MQTTManager:
         self._clients: dict[int, mqtt.Client] = {}
         self._connected: set[int] = set()
         self._missing_stations: set[int] = set()
-    
+        # ---------------------------------
+        # Network Statistics Counters
+        # ---------------------------------
+        self._stats = {
+            "cam": {"sent": 0, "dropped": 0},
+            "mcm_request": {"sent": 0, "dropped": 0},
+            "mcm_response": {"sent": 0, "dropped": 0},
+            "mcm_termination": {"sent": 0, "dropped": 0},
+        }
+        # CAM delay statistics
+        self._cam_delays = []
+        self.log_file = "message_events.csv"
+
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    "timestamp",
+                    "station_id",
+                    "message_type",
+                    "delay_ms",
+                    "dropped"
+                ])
+
     def get_client(self, station_id: int) -> Optional[mqtt.Client]:
         """
         Recupera o crea un client MQTT per lo specifico StationID.
@@ -103,9 +131,56 @@ class MQTTManager:
             return False
         
         try:
-            msg_str = json.dumps(payload, separators=(',', ':'))
-            result = client.publish(topic, msg_str)
-            return result.rc == mqtt.MQTT_ERR_SUCCESS
+           msg_str = json.dumps(payload, separators=(',', ':'))
+           # Count every attempted send
+           if message_type in self._stats:
+               self._stats[message_type]["sent"] += 1
+           # -----------------------------
+           # Network Emulation Layer
+           # -----------------------------
+           if NETWORK_EMULATION["enabled"]:
+               #1️Packet Loss
+               if random.random() < NETWORK_EMULATION["packet_loss_prob"]:
+                   logger.warning(f"[NETEM] Packet dropped (type={message_type})")
+                   
+                   # ---------------------- ----
+                   with open(self.log_file, "a", newline="") as f:
+                       writer = csv.writer(f)
+                       writer.writerow([
+                           time.time(),
+                           station_id,
+                           message_type,
+                           0,          # no delay because packet dropped
+                           True        # packet dropped
+                       ])
+                   # ------------------------
+                   if message_type in self._stats:
+                       self._stats[message_type]["dropped"] += 1
+                   return False
+               # 2️ Delay + Jitter
+               delay = NETWORK_EMULATION["fixed_delay_ms"] / 1000.0
+               jitter = NETWORK_EMULATION["jitter_ms"] / 1000.0
+               actual_delay = delay + random.uniform(-jitter, jitter)
+               if message_type == "cam":
+                   logger.info(f"[CAM] simulated delay = {actual_delay:.3f} s")
+                   self._cam_delays.append(actual_delay)
+               # ---------------------------
+               with open(self.log_file, "a", newline="") as f:
+                   writer = csv.writer(f)
+                   writer.writerow([
+                       time.time(),
+                       station_id,
+                       message_type,
+                       actual_delay * 1000,
+                       False
+               ])
+               # -------------------------------------
+
+               if actual_delay > 0:
+                   time.sleep(actual_delay)
+           # -----------------------------
+           result = client.publish(topic, msg_str)
+           return result.rc == mqtt.MQTT_ERR_SUCCESS
         except Exception as e:
             logger.error(f"Errore pubblicazione MQTT: {e}")
             return False
@@ -120,7 +195,30 @@ class MQTTManager:
                 logger.debug(f"Disconnesso client station {station_id}")
             except Exception as e:
                 logger.error(f"Errore chiusura client {station_id}: {e}")
-        
+        # ---------------------------------
+        # Print Network Statistics HERE
+        # ---------------------------------
+        logger.info("=== NETWORK STATISTICS ===")
+        for msg_type, data in self._stats.items():
+            sent = data["sent"]
+            dropped = data["dropped"]
+            if sent > 0:
+                loss_rate = (dropped / sent) * 100
+                logger.info(
+                    f"{msg_type}: Sent={sent}, Dropped={dropped}, Loss={loss_rate:.2f}%"
+                )
+            else:
+                logger.info(f"{msg_type}: Sent=0")
+        cam_delays = self._stats.get("cam_delays", [])
+        if self._cam_delays:
+            avg_delay = sum(self._cam_delays) / len(self._cam_delays)
+            min_delay = min(self._cam_delays)
+            max_delay = max(self._cam_delays)
+
+            logger.info("=== CAM DELAY STATISTICS ===")
+            logger.info(f"Average CAM delay: {avg_delay:.3f} s")
+            logger.info(f"Min CAM delay: {min_delay:.3f} s")
+            logger.info(f"Max CAM delay: {max_delay:.3f} s")
         self._clients.clear()
         self._connected.clear()
 

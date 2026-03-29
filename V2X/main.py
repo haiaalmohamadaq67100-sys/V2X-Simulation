@@ -23,6 +23,7 @@ from config import (
 # Moduli interni
 from utils import get_station_id_from_veh, get_generation_delta_time, euclidean_distance
 from mqtt_manager import mqtt_manager
+from network_stats import network_stats
 from entities import RSU, Vehicle
 from messages import MessageFactory
 from triggers import TriggerRegistry
@@ -76,6 +77,10 @@ class V2XSimulator:
     def _on_mqtt_message(self, client, userdata, msg):
         try:
             payload = json.loads(msg.payload.decode())
+            # detect CAM
+            if "camParameters" in payload:
+                network_stats.record_cam_received(0)
+                return
             self._incoming_mcm_queue.append(payload)
         except Exception as e:
             logger.error(f"Errore parsing MQTT: {e}")
@@ -250,7 +255,13 @@ class V2XSimulator:
     
     def _send_message(self, entity, msg_type, gen_delta_time):
         msg = MessageFactory.create(msg_type, gen_delta_time)
-        if msg: mqtt_manager.publish(entity.station_id, msg_type, msg.build_payload(entity.get_message_data(msg_type)))
+        if msg: 
+            payload = msg.build_payload(entity.get_message_data(msg_type))
+            # record CAM send timestamp
+            if msg_type == "cam":
+                network_stats.record_cam_sent(entity.station_id)
+
+            mqtt_manager.publish(entity.station_id, msg_type, payload)
     
     def _cleanup_vehicles(self):
         active = set(traci.vehicle.getIDList())
@@ -264,7 +275,8 @@ class V2XSimulator:
         try: traci.close()
         except: pass
         mqtt_manager.close_all()
-
+        # Print MCM delay statistics
+        network_stats.print_summary()
 def main():
     print("=" * 60)
     print("V2X Simulator - Batch Mode")

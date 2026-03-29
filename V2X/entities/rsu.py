@@ -4,7 +4,7 @@ Classe RSU (Road Side Unit) - Unità stradale fissa.
 
 import logging
 from typing import Optional, List, Dict, Any
-
+from network_stats import network_stats
 from .base import Entity
 from utils import sumo_to_geo
 from config import RSU_CONFIG, STATION_TYPE_RULES
@@ -84,12 +84,16 @@ class RSU(Entity):
         data = { "station_id": self.station_id, "station_type": current_station_type, "lat": self._lat, "lon": self._lon, "speed": 0, "heading": 0, "acceleration": 0 }
 
         if message_type == "mcm_request":
-            data.update({ "manoeuvre_id": 10, "cost": 50, "executants": self._current_mcm_executants })
-            
+            manoeuvre_id = 10
+            data.update({ "manoeuvre_id": manoeuvre_id, "cost": 50, "executants": self._current_mcm_executants })
+            # record request time
+            network_stats.record_request(manoeuvre_id)
         # --- NUOVO: Dati per Termination ---
         if message_type == "mcm_termination":
-            data.update({ "manoeuvre_id": 10 }) # ID fisso o dinamico
-
+            manoeuvre_id = 10
+            data.update({ "manoeuvre_id": manoeuvre_id }) # ID fisso o dinamico
+            # record session termination time
+            network_stats.record_termination(manoeuvre_id)
         return data
 
     def get_state_snapshot(self) -> dict:

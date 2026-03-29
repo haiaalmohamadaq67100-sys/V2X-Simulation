@@ -1,0 +1,18 @@
+<routes>
+    <route id="route0" edges="A3B3 B3B4"/>
+    <route id="route1" edges="C3B3 B3A3"/>
+    <vType id="type1" accel="0.8" decel="7.5" sigma="0.5" length="5" maxSpeed="27.7"/>
+    
+    <vehicle id="1" type="type1" depart="0" route="route0" color="1,0,0"/>
+    <vehicle id="2" type="type1" depart="0" route="route1" color="0,1,0"/>
+        <vehicle id="3" type="type1" depart="3" route="route0" color="1,1,0"/>
+    <vehicle id="4" type="type1" depart="6" route="route1" color="1,1,0"/>
+    <vehicle id="5" type="type1" depart="9" route="route0" color="1,1,0"/>
+    <vehicle id="6" type="type1" depart="12" route="route1" color="1,1,0"/>
+    <vehicle id="7" type="type1" depart="15" route="route0" color="1,1,0"/>
+    <vehicle id="8" type="type1" depart="18" route="route1" color="1,1,0"/>
+    <vehicle id="9" type="type1" depart="21" route="route0" color="1,1,0"/>
+    <vehicle id="10" type="type1" depart="24" route="route1" color="1,1,0"/>
+    <vehicle id="11" type="type1" depart="27" route="route0" color="1,1,0"/>
+    <vehicle id="12" type="type1" depart="30" route="route1" color="1,1,0"/>
+</routes>
