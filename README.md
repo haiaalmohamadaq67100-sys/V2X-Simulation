@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # WorkInProgress_MCM
 
 ## Software
@@ -120,3 +121,6 @@ v2x_simulator/
 * **[ETSI ITS Standards](https://www.etsi.org/technologies/automotive-intelligent-transportation)** - Standards for Intelligent Transport Systems (V2X).
 * **[Docker Documentation](https://docs.docker.com/)** - Reference for container deployment.
 
+=======
+# V2X-Simulation
+>>>>>>> 2fc18a751e4cb34aa03c55b8187140f791c41947
