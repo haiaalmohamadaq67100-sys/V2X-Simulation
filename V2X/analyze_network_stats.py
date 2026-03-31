@@ -38,28 +38,6 @@ def latency_percentiles(delays):
 
 
 # -------------------------------------------------------
-# Packet inter-arrival time
-# -------------------------------------------------------
-
-def inter_arrival_times(df):
-
-    if "timestamp" not in df.columns:
-        return None
-
-    times = df["timestamp"].sort_values()
-    diffs = times.diff().dropna()
-
-    if len(diffs) == 0:
-        return None
-
-    return {
-        "avg": diffs.mean(),
-        "min": diffs.min(),
-        "max": diffs.max()
-    }
-
-
-# -------------------------------------------------------
 # Message statistics
 # -------------------------------------------------------
 
@@ -82,7 +60,7 @@ def compute_stats(df, msg_type):
 
     percentiles = latency_percentiles(delays)
 
-    inter_arrival = inter_arrival_times(subset)
+    
 
     return {
         "sent": sent,
@@ -94,7 +72,7 @@ def compute_stats(df, msg_type):
         "max_delay": max_delay,
         "std_delay": std_delay,
         "percentiles": percentiles,
-        "inter_arrival": inter_arrival
+     
     }
 
 
@@ -128,14 +106,7 @@ def print_report(name, stats):
             print("P95 :", round(p["p95"],2),"ms")
             print("P99 :", round(p["p99"],2),"ms")
 
-    ia = stats["inter_arrival"]
 
-    if ia:
-
-        print("\nPacket inter-arrival")
-        print("Average :", round(ia["avg"],4),"s")
-        print("Min     :", round(ia["min"],4),"s")
-        print("Max     :", round(ia["max"],4),"s")
 
 
 # -------------------------------------------------------
